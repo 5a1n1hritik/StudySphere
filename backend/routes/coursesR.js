@@ -4,38 +4,6 @@ const Course = require("../models/course"); // Assuming you have a Course model
 var { fetchuser, verifyAdmin } = require('../Middleware/authMiddleware');
 
 
-// router.get("/getCourses", async (req, res) => {
-//   try {
-//     const courses = await Course.find().populate("instructor");
-//     res.json(courses);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
-
-// router.get("/getCourse", async (req, res) => {
-//   try {
-//     const course = await Course.findById(req.params.id).populate("instructor");
-//     res.json(course);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
-
-// router.get("/createCourse", async (req, res) => {
-//     const { title, description, curriculum } = req.body;
-//   try {
-//     const course = new Course({ title, description, instructor: req.user._id, curriculum });
-//     await course.save();
-//     res.status(201).json(course);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// });
-
-
-
-
 // Get all courses
 router.get('/fetchallCourses', async (req, res) => {
   try {
@@ -58,17 +26,6 @@ router.get('/singleCourse:id', async (req, res) => {
 });
 
 // Create a new course (protected route admin only)
-// router.post('/', fetchuser,verifyAdmin, async (req, res) => {
-//   const { title, description, price, category, level } = req.body;
-//   try {
-//     const newCourse = new Course({ title, description, price, category, level });
-//     await newCourse.save();
-//     res.status(201).json(newCourse);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
 router.post('/addcourse', verifyAdmin,fetchuser, async (req, res) => {
   const { title, description, price, category, level } = req.body;
 
