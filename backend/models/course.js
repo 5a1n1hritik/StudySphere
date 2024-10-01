@@ -7,37 +7,29 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      unique: true, // Ensure title is unique
     },
     description: {
       type: String,
       required: true,
       trim: true,
+      minlength: 10, // Minimum length for description
     },
     category: {
       type: String,
       required: true,
     },
-    instructor: {
+    admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Assuming you have a User model for instructors
+      ref: "User",
       required: true,
     },
-    lessons: {
+    lessons: [
+      {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Lesson",
-    },
-    // curriculum: [
-    //   {
-    //     module: {
-    //       type: String,
-    //       required: true,
-    //     },
-    //     description: {
-    //       type: String,
-    //       required: true,
-    //     },
-    //   },
-    // ],
+      },
+    ],
     ratings: [
       {
         user: {
@@ -65,16 +57,32 @@ const courseSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      default: 0, // Free by default, could be changed
+      default: 0, // Free by default
+      min: 0, // Ensure price is non-negative
     },
     duration: {
       type: String, // e.g., '10 hours', '6 weeks', etc.
+      required: true, // Make it required
+      validate: {
+        validator: function (v) {
+          // Basic duration validation
+          return /^\d+\s(?:hours|weeks|months)$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid duration format!`,
+      },
     },
     prerequisites: {
-      type: [String], // Array of strings to hold any prerequisites for the course
+      type: [String], // Array of strings for prerequisites
     },
     image: {
       type: String, // URL to the course image
+      validate: {
+        validator: function (v) {
+          // Basic image URL validation
+          return /^(ftp|http|https):\/\/[^ "]+$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid image URL!`,
+      },
     },
     featured: {
       type: Boolean,
@@ -82,8 +90,8 @@ const courseSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically add `createdAt` and `updatedAt` fields
-    toJSON: { virtuals: true }, // Include virtual fields in JSON output
+    timestamps: true,
+    toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
@@ -102,14 +110,20 @@ courseSchema.virtual("averageRating").get(function () {
 
 // Static method to enroll a user in a course
 courseSchema.statics.enrollUser = async function (courseId, userId) {
-  const course = await this.findById(courseId);
-  if (!course.enrolledUsers.includes(userId)) {
-    course.enrolledUsers.push(userId);
-    await course.save();
-  } else {
-    throw new Error("User already enrolled in this course");
+  try {
+    const course = await this.findById(courseId);
+    if (!course) throw new Error("Course not found");
+
+    if (!course.enrolledUsers.includes(userId)) {
+      course.enrolledUsers.push(userId);
+      await course.save();
+    } else {
+      throw new Error("User already enrolled in this course");
+    }
+    return course;
+  } catch (error) {
+    throw new Error(`Failed to enroll user: ${error.message}`);
   }
-  return course;
 };
 
 // Static method to add a rating
@@ -118,21 +132,25 @@ courseSchema.statics.addRating = async function (
   userId,
   ratingValue
 ) {
-  const course = await this.findById(courseId);
-  const existingRating = course.ratings.find(
-    (r) => r.user.toString() === userId.toString()
-  );
+  try {
+    const course = await this.findById(courseId);
+    if (!course) throw new Error("Course not found");
 
-  if (existingRating) {
-    // Update existing rating
-    existingRating.rating = ratingValue;
-  } else {
-    // Add a new rating
-    course.ratings.push({ user: userId, rating: ratingValue });
+    const existingRating = course.ratings.find(
+      (r) => r.user.toString() === userId.toString()
+    );
+
+    if (existingRating) {
+      existingRating.rating = ratingValue; // Update existing rating
+    } else {
+      course.ratings.push({ user: userId, rating: ratingValue }); // Add new rating
+    }
+
+    await course.save();
+    return course;
+  } catch (error) {
+    throw new Error(`Failed to add rating: ${error.message}`);
   }
-
-  await course.save();
-  return course;
 };
 
 // Model creation

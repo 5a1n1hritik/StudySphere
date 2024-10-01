@@ -1,37 +1,49 @@
-var jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
+const User = require("../models/Users");
 
 // Middleware to verify JWT token
 const fetchuser = (req, res, next) => {
   const token = req.header("auth-token");
   if (!token) {
-    res
-      .status(401)
-      .send({
-        error: "Please authenticate using a valid token",
-        message: "Access denied. No token provided.",
-      });
+    return res.status(401).json({
+      error: "Please authenticate using a valid token",
+      message: "Access denied. No token provided.",
+    });
   }
+
   try {
-    const data = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = data.user;
-    next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    // console.log("Decoded user:", req.user); // Consider commenting this out in production
+
+    next(); // Proceed to next middleware or route handler
   } catch (error) {
-    res
-      .status(401)
-      .send({
-        error: "Please authenticate using a valid token",
-        message: "Invalid token",
-      });
+    return res.status(401).json({
+      error: "Please authenticate using a valid token",
+      message: "Invalid token",
+    });
   }
 };
 
-// Middleware to check if the user is an admin
-const verifyAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Access denied. Admins only.' });
+const isAdmin = async (req, res, next) => {
+  try {
+    // Find the user in the database by ID
+    const user = await User.findById(req.user.id).select("role"); // Only select the role field
+
+    // If the user is not found, return 404
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if the user's role is 'Admin'
+    if (user.role !== "Admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
+    next(); // Proceed to next middleware or route handler
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
   }
-  next();
 };
 
-
-module.exports = {fetchuser, verifyAdmin };
+module.exports = { fetchuser, isAdmin };

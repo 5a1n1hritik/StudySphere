@@ -1,58 +1,56 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const lessonSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
-  video_url: {
-    type: String
-  },
-  duration: {
-    type: Number
-  },
-  resources: [{
+const lessonSchema = new mongoose.Schema(
+  {
     title: {
       type: String,
-      required: true
+      required: true,
+      trim: true, // Trims any extra whitespace
     },
-    resource_url: {
+    videoUrl: {
       type: String,
-      required: true
-    }
-  }],
-  content: {
-    type: String
+      validate: {
+        validator: function (v) {
+          return /^(ftp|http|https):\/\/[^ "]+$/.test(v); // Simple URL validation
+        },
+        message: (props) => `${props.value} is not a valid URL!`,
+      },
+    },
+    duration: {
+      type: Number,
+      min: [1, "Duration must be at least 1 minute"], // Ensure duration is positive
+    },
+    resources: [
+      {
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        resourceUrl: {
+          type: String,
+          required: true,
+          validate: {
+            validator: function (v) {
+              return /^(ftp|http|https):\/\/[^ "]+$/.test(v); // URL validation
+            },
+            message: (props) => `${props.value} is not a valid URL!`,
+          },
+        },
+      },
+    ],
+    content: {
+      type: String,
+    },
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course", // Reference to Course model
+      required: true,
+    },
   },
-//   quiz: {
-//     questions: [{
-//       question: {
-//         type: String,
-//         required: true
-//       },
-//       options: {
-//         type: [String],
-//         required: true
-//       },
-//       correct_answer: {
-//         type: String,
-//         required: true
-//       }
-//     }],
-//     pass_mark: {
-//       type: Number,
-//       required: true
-//     }
-//   },
-  course: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course', // Assuming you have a separate 'Course' model
-    required: true
-  },
-  created_at: {
-    type: Date,
-    default: Date.now
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
-});
+);
 
-module.exports = mongoose.model('Lesson', lessonSchema);
+module.exports = mongoose.model("Lesson", lessonSchema);
