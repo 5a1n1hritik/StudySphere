@@ -187,5 +187,9 @@ router.put('/update-role/:id', fetchuser, isAdmin, [
     }
 });
 
+router.post('/resources', (req, res) => {
+    res.json({ success: true });
+  });
+  
 
 module.exports = router;
